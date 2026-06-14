@@ -1,6 +1,6 @@
 # 青简译英（文言文→英文翻译助手）
 
-**青简译英** 是一个基于 OpenAI API 的文言文英译助手，提供命令行、Web UI 和离线演示三种入口。它专注把中国文言文翻译成英文，并稳定输出：
+**青简译英** 是一个基于 OpenAI API 的文言文英译助手，提供命令行、桌面 GUI、Web UI 和离线演示四种入口。它专注把中国文言文翻译成英文，并稳定输出：
 
 1. 直译（Literal Translation）
 2. 润色译文（Polished Translation）
@@ -12,6 +12,7 @@
 
 - **CLI 正式翻译**：使用 OpenAI API 翻译单条文本或进入交互模式。
 - **CLI 离线演示**：使用 `--mock` 在无网络、无 API Key、未安装 OpenAI SDK 时展示完整输出结构。
+- **桌面 GUI**：提供基于 Tkinter 的本地窗口界面，无需额外 GUI 依赖，默认支持离线演示。
 - **Web UI**：提供更直观的 Gradio 界面，包括输入框、模型选择、temperature 滑块、离线演示模式和示例文本。
 - **共享翻译核心**：CLI 和 Web UI 复用同一套提示词、mock 输出和 API 调用逻辑，避免两端行为不一致。
 - **基础测试**：覆盖输入清洗、提示词构建、mock 输出和空输入校验。
@@ -65,7 +66,23 @@ python demo_runner.py
 
 > 注意：`demo_runner.py` 是固定示例，不调用模型；真实翻译请使用 `translator_assistant.py`。
 
-## 7) Web UI（更丰富的界面）
+
+## 7) 桌面 GUI（本地窗口界面）
+
+如果你希望打开一个本地桌面窗口，可以运行 Tkinter GUI：
+
+```bash
+python desktop_gui.py
+```
+
+界面能力：
+
+- 左侧多行文言文输入区，右侧翻译结果区
+- 模型选择、temperature 控制和离线演示模式开关
+- 一键翻译、清空、示例文本按钮
+- 默认开启离线演示模式，不需要 API Key 即可预览效果
+
+## 8) Web UI（更丰富的界面）
 
 如果你希望更丰富的 UI 界面（按钮、示例、参数滑块、可视化输出），可以运行 Gradio Web 应用：
 
