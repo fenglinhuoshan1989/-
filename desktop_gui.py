@@ -6,18 +6,22 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from qingjian_core import DEFAULT_MODEL, DEFAULT_TEMPERATURE, translate_text
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 EXAMPLES = (
     "子曰：学而时习之，不亦说乎？",
     "天行健，君子以自强不息。",
     "路漫漫其修远兮，吾将上下而求索。",
 )
-MODEL_CHOICES = (DEFAULT_MODEL, "gpt-5.4-mini", "gpt-5.4")
+MODEL_CHOICES = (DEFAULT_MODEL, "gpt-4.5-mini", "gpt-4.5")
 
 
 class QingJianDesktopApp:
@@ -38,16 +42,28 @@ class QingJianDesktopApp:
         self._build_layout()
 
     def _configure_style(self) -> None:
+        """Configure ttk styles."""
         style = ttk.Style(self.root)
         style.theme_use("clam")
         style.configure("Hero.TFrame", background="#f3ead7")
-        style.configure("HeroTitle.TLabel", background="#f3ead7", foreground="#243426", font=("Arial", 22, "bold"))
-        style.configure("HeroSubtitle.TLabel", background="#f3ead7", foreground="#44513f", font=("Arial", 12))
+        style.configure(
+            "HeroTitle.TLabel",
+            background="#f3ead7",
+            foreground="#243426",
+            font=("Arial", 22, "bold"),
+        )
+        style.configure(
+            "HeroSubtitle.TLabel",
+            background="#f3ead7",
+            foreground="#44513f",
+            font=("Arial", 12),
+        )
         style.configure("Primary.TButton", font=("Arial", 11, "bold"), padding=8)
         style.configure("TLabel", font=("Arial", 10))
         style.configure("TButton", font=("Arial", 10), padding=6)
 
     def _build_layout(self) -> None:
+        """Build the GUI layout."""
         container = ttk.Frame(self.root, padding=16)
         container.pack(fill=tk.BOTH, expand=True)
 
@@ -73,7 +89,14 @@ class QingJianDesktopApp:
         self.input_text.grid(row=1, column=0, sticky=tk.NSEW)
         self.input_text.insert("1.0", EXAMPLES[0])
 
-        self.output_text = tk.Text(main, height=16, wrap=tk.WORD, font=("Arial", 11), padx=10, pady=10)
+        self.output_text = tk.Text(
+            main,
+            height=16,
+            wrap=tk.WORD,
+            font=("Arial", 11),
+            padx=10,
+            pady=10,
+        )
         self.output_text.grid(row=1, column=1, sticky=tk.NSEW, padx=(12, 0))
         self.output_text.configure(state=tk.DISABLED)
 
@@ -100,9 +123,18 @@ class QingJianDesktopApp:
             length=150,
         ).grid(row=0, column=3, padx=(6, 18), sticky=tk.W)
 
-        ttk.Checkbutton(controls, text="离线演示模式", variable=self.mock_var).grid(row=0, column=4, padx=(0, 18))
+        ttk.Checkbutton(controls, text="离线演示模式", variable=self.mock_var).grid(
+            row=0,
+            column=4,
+            padx=(0, 18),
+        )
 
-        self.translate_button = ttk.Button(controls, text="开始翻译", style="Primary.TButton", command=self.translate_async)
+        self.translate_button = ttk.Button(
+            controls,
+            text="开始翻译",
+            style="Primary.TButton",
+            command=self.translate_async,
+        )
         self.translate_button.grid(row=0, column=5, padx=(0, 8))
         ttk.Button(controls, text="清空", command=self.clear).grid(row=0, column=6, sticky=tk.W)
 
@@ -110,7 +142,11 @@ class QingJianDesktopApp:
         examples.pack(fill=tk.X, pady=(0, 8))
         ttk.Label(examples, text="示例：").pack(side=tk.LEFT)
         for example in EXAMPLES:
-            ttk.Button(examples, text=example, command=lambda value=example: self.load_example(value)).pack(
+            ttk.Button(
+                examples,
+                text=example,
+                command=lambda value=example: self.load_example(value),
+            ).pack(
                 side=tk.LEFT,
                 padx=(6, 0),
             )
@@ -119,19 +155,25 @@ class QingJianDesktopApp:
         status.pack(fill=tk.X)
 
     def load_example(self, value: str) -> None:
+        """Load an example text."""
         self.input_text.delete("1.0", tk.END)
         self.input_text.insert("1.0", value)
         self.status_var.set("已载入示例文本。")
+        logger.debug(f"Loaded example: {value[:30]}...")
 
     def clear(self) -> None:
+        """Clear input and output."""
         self.input_text.delete("1.0", tk.END)
         self._set_output("")
         self.status_var.set("已清空。")
+        logger.debug("Cleared input and output")
 
     def translate_async(self) -> None:
+        """Trigger translation in a background thread."""
         text = self.input_text.get("1.0", tk.END).strip()
         if not text:
             messagebox.showwarning("缺少输入", "请先输入文言文内容。")
+            logger.warning("Translation triggered with empty input")
             return
 
         self.translate_button.configure(state=tk.DISABLED)
@@ -140,24 +182,36 @@ class QingJianDesktopApp:
         worker.start()
 
     def _translate_worker(self, text: str) -> None:
+        """Worker thread for translation."""
         try:
+            logger.debug(f"Translation started: {text[:50]}...")
             result = translate_text(
                 text,
                 model=self.model_var.get(),
                 temperature=self.temperature_var.get(),
                 mock=self.mock_var.get(),
             )
-        except Exception as exc:  # noqa: BLE001
-            result = f"⚠️ 翻译失败：{exc}"
+            logger.debug(f"Translation completed, length: {len(result)}")
+        except ValueError as e:
+            result = f"⚠️ 输入错误：{e}"
+            logger.warning(f"Validation error: {e}")
+        except RuntimeError as e:
+            result = f"⚠️ 翻译失败：{e}"
+            logger.error(f"Translation failed: {e}")
+        except Exception as e:  # noqa: BLE001
+            result = f"⚠️ 系统错误：{e}"
+            logger.error(f"Unexpected error: {e}", exc_info=True)
 
         self.root.after(0, self._finish_translation, result)
 
     def _finish_translation(self, result: str) -> None:
+        """Finish translation and update UI."""
         self._set_output(result)
         self.translate_button.configure(state=tk.NORMAL)
         self.status_var.set("完成。")
 
     def _set_output(self, text: str) -> None:
+        """Set output text safely."""
         self.output_text.configure(state=tk.NORMAL)
         self.output_text.delete("1.0", tk.END)
         self.output_text.insert("1.0", text)
@@ -165,6 +219,7 @@ class QingJianDesktopApp:
 
 
 def main() -> None:
+    """Main entry point."""
     root = tk.Tk()
     QingJianDesktopApp(root)
     root.mainloop()

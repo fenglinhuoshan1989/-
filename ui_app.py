@@ -2,21 +2,39 @@
 
 from __future__ import annotations
 
+import html
+import logging
+
 import gradio as gr
 
 from qingjian_core import DEFAULT_MODEL, DEFAULT_TEMPERATURE, translate_text
 
-MODEL_CHOICES = [DEFAULT_MODEL, "gpt-5.4-mini", "gpt-5.4"]
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+MODEL_CHOICES = [DEFAULT_MODEL, "gpt-4.5-mini", "gpt-4.5"]
 
 
 def translate(text: str, model: str, temperature: float, mock: bool) -> str:
+    """Translate text with error handling."""
     try:
-        return translate_text(text, model=model, temperature=temperature, mock=mock)
-    except Exception as exc:  # noqa: BLE001
-        return f"⚠️ {exc}"
+        logger.debug(f"Web UI translation request: model={model}, mock={mock}")
+        result = translate_text(text, model=model, temperature=temperature, mock=mock)
+        # Escape HTML special characters in output for safety
+        return html.escape(result)
+    except ValueError as e:
+        logger.warning(f"Validation error: {e}")
+        return f"⚠️ **输入错误**: {html.escape(str(e))}"
+    except RuntimeError as e:
+        logger.error(f"Runtime error: {e}")
+        return f"⚠️ **翻译失败**: {html.escape(str(e))}"
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        return f"⚠️ **系统错误**: {html.escape(str(e))}"
 
 
 def build_demo_examples() -> list[list[object]]:
+    """Build demo examples for the interface."""
     return [
         ["子曰：学而时习之，不亦说乎？", DEFAULT_MODEL, DEFAULT_TEMPERATURE, True],
         ["天行健，君子以自强不息。", DEFAULT_MODEL, 0.2, True],
@@ -36,7 +54,11 @@ CUSTOM_CSS = """
 """
 
 
-with gr.Blocks(title="青简译英 · 文言文翻译助手", theme=gr.themes.Soft(), css=CUSTOM_CSS) as app:
+with gr.Blocks(
+    title="青简译英 · 文言文翻译助手",
+    theme=gr.themes.Soft(),
+    css=CUSTOM_CSS,
+) as app:
     gr.Markdown(
         """
         <div id="qingjian-hero">
@@ -56,8 +78,17 @@ with gr.Blocks(title="青简译英 · 文言文翻译助手", theme=gr.themes.So
             )
         with gr.Column(scale=2):
             model = gr.Dropdown(label="模型", choices=MODEL_CHOICES, value=DEFAULT_MODEL)
-            temperature = gr.Slider(0, 1, value=DEFAULT_TEMPERATURE, step=0.1, label="创造性（temperature）")
-            mock = gr.Checkbox(label="离线演示模式（不调用 API）", value=True)
+            temperature = gr.Slider(
+                0,
+                1,
+                value=DEFAULT_TEMPERATURE,
+                step=0.1,
+                label="创造性（temperature）",
+            )
+            mock = gr.Checkbox(
+                label="离线演示模式（不调用 API）",
+                value=True,
+            )
             run_btn = gr.Button("开始翻译", variant="primary")
             clear_btn = gr.Button("清空")
 

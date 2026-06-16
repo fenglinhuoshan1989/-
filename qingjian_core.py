@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from textwrap import dedent
 from typing import Any
 
-DEFAULT_MODEL = "gpt-5-mini"
-DEFAULT_TEMPERATURE = 0.3
+try:
+    from config import (
+        API_TIMEOUT,
+        DEFAULT_MODEL,
+        DEFAULT_TEMPERATURE,
+        LOG_LEVEL,
+        MAX_INPUT_LENGTH,
+        MAX_RETRIES,
+    )
+except ImportError:
+    DEFAULT_MODEL = "gpt-4-mini"
+    DEFAULT_TEMPERATURE = 0.3
+    API_TIMEOUT = 30
+    MAX_RETRIES = 2
+    MAX_INPUT_LENGTH = 2000
+    LOG_LEVEL = "INFO"
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=LOG_LEVEL)
 
 SYSTEM_PROMPT = dedent(
     """
@@ -81,6 +99,23 @@ def normalize_text(text: str | None) -> str:
     return (text or "").strip()
 
 
+def validate_input(text: str | None) -> str:
+    """Validate and normalize input with length limits.
+    
+    Raises:
+        ValueError: If input is empty or exceeds maximum length.
+    """
+    clean_text = normalize_text(text)
+
+    if not clean_text:
+        raise ValueError("请先输入文言文内容。")
+
+    if len(clean_text) > MAX_INPUT_LENGTH:
+        raise ValueError(f"输入过长，最多 {MAX_INPUT_LENGTH} 字。当前: {len(clean_text)} 字。")
+
+    return clean_text
+
+
 def build_user_prompt(text: str) -> str:
     """Build the user message sent to the model."""
 
@@ -124,31 +159,73 @@ def translate_text(
     mock: bool = False,
     client: Any | None = None,
 ) -> str:
-    """Translate Classical Chinese text into English.
+    """Translate Classical Chinese text into English with retry logic.
 
-    The OpenAI SDK is imported lazily so mock mode and unit tests can run in
-    offline environments without optional runtime dependencies installed.
+    Args:
+        text: The Classical Chinese text to translate.
+        model: OpenAI model name (default: gpt-4-mini).
+        temperature: Sampling temperature (0.0-1.0).
+        mock: If True, use offline mock translation.
+        client: Optional pre-configured OpenAI client.
+
+    Returns:
+        Translated text with three-part output.
+
+    Raises:
+        ValueError: If input is empty or invalid.
+        RuntimeError: If API key is missing or all retries failed.
     """
 
-    clean_text = normalize_text(text)
-    if not clean_text:
-        raise ValueError("请先输入文言文内容。")
+    clean_text = validate_input(text)
 
     if mock:
+        logger.debug(f"Using mock translation for: {clean_text[:50]}...")
         return local_mock_translate(clean_text)
 
     if not has_api_key() and client is None:
-        raise RuntimeError("缺少 OPENAI_API_KEY 环境变量。可启用 mock 模式进行离线演示。")
+        raise RuntimeError(
+            "缺少 OPENAI_API_KEY 环境变量。可启用 mock 模式进行离线演示。\n"
+            "Missing OPENAI_API_KEY environment variable. Use mock mode for offline demos."
+        )
 
-    from openai import OpenAI
+    from openai import APIConnectionError, APIError, APITimeoutError, OpenAI
 
-    api_client = client or OpenAI()
-    response = api_client.responses.create(
-        model=model,
-        input=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": build_user_prompt(clean_text)},
-        ],
-        temperature=temperature,
-    )
-    return response.output_text.strip()
+    api_client = client or OpenAI(timeout=API_TIMEOUT)
+    logger.debug(f"Translating with model={model}, temperature={temperature}")
+
+    last_error = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.debug(f"API call attempt {attempt + 1}/{MAX_RETRIES}")
+            response = api_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": build_user_prompt(clean_text)},
+                ],
+                temperature=temperature,
+            )
+            result = response.choices[0].message.content.strip()
+            logger.debug(f"Translation successful, length: {len(result)}")
+            return result
+        except (APIConnectionError, APITimeoutError) as e:
+            last_error = e
+            if attempt < MAX_RETRIES - 1:
+                logger.warning(f"Transient error on attempt {attempt + 1}, retrying: {e}")
+                continue
+            logger.error(f"Failed after {MAX_RETRIES} retries: {e}")
+            raise RuntimeError(
+                f"网络连接失败，重试 {MAX_RETRIES} 次后仍未成功。请检查网络或稍后重试。\n"
+                f"Network connection failed after {MAX_RETRIES} retries: {e}"
+            ) from e
+        except APIError as e:
+            logger.error(f"API error: {e}", exc_info=True)
+            raise RuntimeError(
+                f"OpenAI API 错误: {e}\n"
+                f"OpenAI API error: {e}"
+            ) from e
+
+    if last_error:
+        raise RuntimeError(
+            f"翻译失败。最后一次错误: {last_error}"
+        ) from last_error
