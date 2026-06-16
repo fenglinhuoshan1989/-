@@ -1,0 +1,51 @@
+{
+  "app.title": "青简译英",
+  "app.subtitle": "文言文 → 英文翻译助手",
+  "app.description": "一键生成直译、润色译文与学习注释",
+
+  "input.prompt": "请输入文言文：",
+  "input.placeholder": "例如：子曰：学而时习之，不亦乐乎？",
+  "input.empty": "请输入非空的文言文内容",
+  "input.too_long": "输入文本超过 {max_length} 字符限制",
+
+  "translation.title": "翻译结果",
+  "translation.success": "✅ 翻译成功",
+  "translation.failed": "❌ 翻译失败：{error}",
+  "translation.in_progress": "⏳ 翻译进行中，请稍候...",
+  "translation.network_error": "网络错误：无法连接到翻译服务。请检查网络连接和 API 配置",
+  "translation.rate_limit": "API 配额已用尽，请稍候或升级账户",
+  "translation.timeout": "翻译超时（{timeout}秒），请稍候重试",
+
+  "api.missing_key": "缺少 OPENAI_API_KEY 环境变量。设置方法：\n  Linux/Mac: export OPENAI_API_KEY='sk-...'\n  Windows: set OPENAI_API_KEY=sk-...\n  或使用: --mock 启用离线演示模式",
+  "api.invalid_model": "无效的模型：{model}。支持的模型：{models}",
+  "api.invalid_temperature": "temperature 必须在 0-1 之间，当前值：{temperature}",
+
+  "button.translate": "开始翻译",
+  "button.clear": "清空",
+  "button.stop": "停止",
+  "button.examples": "示例",
+
+  "menu.model": "模型",
+  "menu.temperature": "创造性（temperature）",
+  "menu.mock_mode": "离线演示模式（不调用 API）",
+  "menu.language": "语言",
+
+  "status.ready": "🟢 就绪",
+  "status.translating": "🟡 翻译中",
+  "status.error": "🔴 错误",
+  "status.success": "✅ 完成",
+
+  "dialog.warning": "⚠️ 警告",
+  "dialog.error": "❌ 错误",
+  "dialog.missing_input": "请先输入文言文内容",
+  "dialog.confirm_exit": "确定要退出吗？",
+
+  "help.interactive_exit": "输入 'q'、'quit' 或 'exit' 以离开",
+  "help.example_cli": "示例：python translator_assistant.py --mock --text '子曰：学而时习之'",
+  "help.example_web": "示例：python ui_app.py，然后在浏览器打开 http://127.0.0.1:7860",
+
+  "log.api_call": "第 {attempt} 次调用 OpenAI API，模型={model}",
+  "log.api_success": "翻译成功，输入 {length} 字",
+  "log.api_retry": "连接失败，{wait_time} 秒后重试：{error}",
+  "log.api_fail_final": "重试 {max_retries} 次后仍失败"
+}

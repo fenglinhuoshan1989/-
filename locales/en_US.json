@@ -1,0 +1,51 @@
+{
+  "app.title": "QingJian Translate",
+  "app.subtitle": "Classical Chinese (文言文) → English Translator",
+  "app.description": "Generate literal translation, polished version, and learning notes with one click",
+
+  "input.prompt": "Enter Classical Chinese text:",
+  "input.placeholder": "Example: 子曰：学而时习之，不亦乐乎？",
+  "input.empty": "Please enter non-empty Classical Chinese text",
+  "input.too_long": "Input text exceeds {max_length} character limit",
+
+  "translation.title": "Translation Result",
+  "translation.success": "✅ Translation successful",
+  "translation.failed": "❌ Translation failed: {error}",
+  "translation.in_progress": "⏳ Translation in progress, please wait...",
+  "translation.network_error": "Network error: Unable to connect to translation service. Please check your network connection and API configuration",
+  "translation.rate_limit": "API quota exceeded, please wait or upgrade your account",
+  "translation.timeout": "Translation timeout ({timeout}s), please try again",
+
+  "api.missing_key": "Missing OPENAI_API_KEY environment variable. Setup instructions:\n  Linux/Mac: export OPENAI_API_KEY='sk-...'\n  Windows: set OPENAI_API_KEY=sk-...\n  Or use: --mock to enable offline demo mode",
+  "api.invalid_model": "Invalid model: {model}. Supported models: {models}",
+  "api.invalid_temperature": "temperature must be between 0-1, current value: {temperature}",
+
+  "button.translate": "Translate",
+  "button.clear": "Clear",
+  "button.stop": "Stop",
+  "button.examples": "Examples",
+
+  "menu.model": "Model",
+  "menu.temperature": "Creativity (temperature)",
+  "menu.mock_mode": "Offline Demo Mode (no API call)",
+  "menu.language": "Language",
+
+  "status.ready": "🟢 Ready",
+  "status.translating": "🟡 Translating",
+  "status.error": "🔴 Error",
+  "status.success": "✅ Complete",
+
+  "dialog.warning": "⚠️ Warning",
+  "dialog.error": "❌ Error",
+  "dialog.missing_input": "Please enter Classical Chinese text first",
+  "dialog.confirm_exit": "Are you sure you want to exit?",
+
+  "help.interactive_exit": "Enter 'q', 'quit', or 'exit' to leave",
+  "help.example_cli": "Example: python translator_assistant.py --mock --text '子曰：学而时习之'",
+  "help.example_web": "Example: python ui_app.py, then open http://127.0.0.1:7860 in your browser",
+
+  "log.api_call": "Calling OpenAI API (attempt {attempt}), model={model}",
+  "log.api_success": "Translation successful, input length: {length} characters",
+  "log.api_retry": "Connection failed, retrying in {wait_time}s: {error}",
+  "log.api_fail_final": "Failed after {max_retries} retries"
+}
