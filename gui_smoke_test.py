@@ -7,12 +7,16 @@ what the GUI will show in offline mode.
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import tkinter as tk
 
 from desktop_gui import EXAMPLES, MODEL_CHOICES, QingJianDesktopApp
 from qingjian_core import DEFAULT_MODEL, DEFAULT_TEMPERATURE, translate_text
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 DEMO_TEXT = "学而不思则罔，思而不学则殆。"
 
@@ -28,6 +32,7 @@ def has_display() -> bool:
 def run_headless_demo() -> str:
     """Run a deterministic offline demo that mirrors the GUI translation path."""
 
+    logger.debug("Running headless demo")
     return translate_text(
         DEMO_TEXT,
         model=DEFAULT_MODEL,
@@ -42,16 +47,21 @@ def run_optional_window_smoke() -> str:
     if not has_display():
         return "SKIP: no graphical display detected; headless smoke demo only."
 
-    root = tk.Tk()
-    root.withdraw()
-    app = QingJianDesktopApp(root)
-    root.update_idletasks()
-    title = root.title()
-    root.destroy()
-    return f"OK: desktop GUI initialized with title: {title}; app={app.__class__.__name__}"
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        app = QingJianDesktopApp(root)
+        root.update_idletasks()
+        title = root.title()
+        root.destroy()
+        return f"OK: desktop GUI initialized with title: {title}; app={app.__class__.__name__}"
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"GUI initialization failed: {e}", exc_info=True)
+        return f"ERROR: desktop GUI failed to initialize: {e}"
 
 
 def main() -> int:
+    """Main entry point."""
     print("=== 青简译英 GUI Smoke Test ===")
     print(f"GUI class: {QingJianDesktopApp.__name__}")
     print(f"Default model choices: {', '.join(MODEL_CHOICES)}")
@@ -60,7 +70,12 @@ def main() -> int:
     print("\n[界面演示输入]")
     print(DEMO_TEXT)
     print("\n[界面演示输出]")
-    print(run_headless_demo())
+    try:
+        print(run_headless_demo())
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Demo failed: {e}", exc_info=True)
+        print(f"Demo error: {e}")
+        return 1
     return 0
 
 
